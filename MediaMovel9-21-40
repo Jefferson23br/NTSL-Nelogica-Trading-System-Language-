@@ -1,0 +1,63 @@
+Var
+    EMA9, EMA21, EMA40: Float;
+    CruzamentoAlta, CruzamentoBaixa: Boolean;
+    PodeComprar, PodeVender: Boolean;
+    Quantidade: Integer;
+    SinalCompra, SinalVenda: Boolean;
+    PrecoEntrada: Float;
+    StopLoss, TakeProfit: Float; 
+Begin
+    // Inicializa parâmetros
+    Quantidade := 1;
+
+    // Cálculo das EMAs
+    EMA9 := MediaExp(9, Close);
+    EMA21 := MediaExp(21, Close);
+    EMA40 := MediaExp(40, Close);
+
+    // Verificar cruzamento da EMA9 com a EMA21
+    CruzamentoAlta := (EMA9 > EMA21) And (EMA9[1] <= EMA21[1]);  // EMA9 cruzou para cima
+    CruzamentoBaixa := (EMA9 < EMA21) And (EMA9[1] >= EMA21[1]);  // EMA9 cruzou para baixo
+
+    // Armazena se a tendência foi confirmada
+    If CruzamentoAlta Then
+        PodeComprar := True;
+    If CruzamentoBaixa Then
+        PodeVender := True;
+
+    // Resetando sinais
+    If Not CruzamentoAlta And Not CruzamentoBaixa Then
+    Begin
+        PodeComprar := False;
+        PodeVender := False;
+    End;
+
+    // **Condição de Compra**
+    If PodeComprar And (Low <= EMA9) And (Close > EMA9) And (EMA21 > EMA40) Then
+    Begin
+        BuyAtMarket(Quantidade);
+        PaintBar(clGreen);
+        PrecoEntrada := Close;
+
+        // Define Stops e Alvos
+        StopLoss := PrecoEntrada - 3.0;
+        TakeProfit := PrecoEntrada + 3.0;
+        SellToCoverLimit(TakeProfit, Quantidade);
+        SellToCoverStop(StopLoss, StopLoss - 0.5, Quantidade);
+
+    End;
+
+    // **Condição de Venda**
+    If PodeVender And (High >= EMA9) And (Close < EMA9) And (EMA21 < EMA40) Then
+    Begin
+        SellShortAtMarket(Quantidade);
+        PaintBar(clRed);
+        PrecoEntrada := Close;
+
+        // Define Stops e Alvos
+        StopLoss := PrecoEntrada + 3.0;
+        TakeProfit := PrecoEntrada - 3.0;
+        BuyToCoverLimit(TakeProfit, Quantidade);
+        BuyToCoverStop(StopLoss, StopLoss + 0.5, Quantidade);
+    End;
+End;
