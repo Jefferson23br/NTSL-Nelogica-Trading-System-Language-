@@ -1,0 +1,55 @@
+Var
+    MFI14, VWAPValue, MediaVolume: Float;
+    SinalCompra, SinalVenda: Boolean;
+    Quantidade: Integer;
+    PrecoEntrada: Float;
+    StopLoss, TakeProfit: Float;
+
+Begin
+    // Configuração de parâmetros
+    Quantidade := 1; // Número de contratos
+    
+    // Calcula os indicadores
+    MFI14 := MFI;  // Money Flow Index com período 14
+    VWAPValue := VWAP(10);  // VWAP com período 10
+    MediaVolume := Media(Volume, 5);  // Média do volume dos últimos 5 candles
+    
+    // Condição de Compra
+    SinalCompra := (MFI14 < 30) and        // MFI indica sobrevenda
+                   (Close > VWAPValue) and  // Preço acima do VWAP (confirma tendência de alta)
+                   (Volume > MediaVolume);  // Volume maior que a média dos últimos 5 candles
+
+    // Condição de Venda
+    SinalVenda := (MFI14 > 70) and        // MFI indica sobrecompra
+                  (Close < VWAPValue) and  // Preço abaixo do VWAP (confirma tendência de baixa)
+                  (Volume > MediaVolume);  // Volume maior que a média dos últimos 5 candles
+
+    // Entrada na operação
+    If SinalCompra Then
+    Begin
+        BuyAtMarket(Quantidade);  // Compra a mercado
+        PrecoEntrada := Close;
+    end;
+    begin
+        // **Define os Stops logo após a entrada**
+        StopLoss := PrecoEntrada - 3.0;  // **Stop Loss de 3 pontos**
+        TakeProfit := PrecoEntrada + 0.5; // **Take Profit de 6 pontos**
+
+        // **Envia ordens de saída**
+        SellToCoverLimit(TakeProfit, Quantidade);  // Take Profit
+        SellToCoverStop(StopLoss, StopLoss - 0.5, Quantidade); // Stop Loss com spread
+     end;    
+    If SinalVenda Then
+    Begin
+        SellShortAtMarket(Quantidade);  // Venda a mercado
+        PrecoEntrada := Close;
+    end;
+    Begin
+        StopLoss := PrecoEntrada + 3.0;  // **Stop Loss de 3 pontos**
+        TakeProfit := PrecoEntrada - 0.5; // **Take Profit de 6 pontos**
+
+        // **Envia ordens de saída**
+        BuyToCoverLimit(TakeProfit, Quantidade);  // Take Profit
+        BuyToCoverStop(StopLoss, StopLoss + 0.5, Quantidade); // Stop Loss com spread
+    End;
+End.
